@@ -20,52 +20,52 @@ def inicializar():
 
     cur = conn.cursor()
     try:
-        cur.execute("SELECT name from users where admin= true")
+        cur.execute("SELECT name from Users where admin= true")
     except mariadb.ProgrammingError:
-        print("user table not found")
+        print("User table not found")
         answer = ""
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE users( userID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(30) NOT NULL, email varchar(50) NOT NULL, telegram varchar(20), materias int, admin int NOT NULL)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Users( userID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(30) NOT NULL, email varchar(50) NOT NULL, telegram varchar(20), materias int, admin int NOT NULL)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
                 print("Not a valid answer")
     except mariadb.Error as e:
-        print(f"Error finding users:{e}")
+        print(f"Error finding Users:{e}")
         sys.exit(1)
     try:
-        cur.execute("SELECT code FROM courses")
+        cur.execute("SELECT code FROM Courses")
     except mariadb.ProgrammingError:
-        print("courses table not found")
+        print("Courses table not found")
         answer = ""
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE courses( courseID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(7) NOT NULL, professor varchar(20), code int NOT NULL)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Courses( courseID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(7) NOT NULL, professor varchar(20), code int NOT NULL)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
                 print("Not a valid answer")
     except mariadb.Error as e:
-        print(f"Error finding users:{e}")
+        print(f"Error finding Courses:{e}")
         sys.exit(1)
     try:
-        cur.execute("SELECT hour FROM warnings")
+        cur.execute("SELECT hour FROM Warnings")
     except mariadb.ProgrammingError:
-        print("warnings table not found")
+        print("Warnings table not found")
         answer = ""
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE warnings(warningID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES courses(courseID) ON DELETE CASCADE)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(courseID) ON DELETE CASCADE)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
                 print("Not a valid answer")
     except mariadb.Error as e:
-        print(f"Error finding users:{e}")
+        print(f"Error finding Warnings:{e}")
         sys.exit(1)
 
 
