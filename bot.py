@@ -33,14 +33,15 @@ def main():
             port = 3306,
             database = "mydb"
         )
-    except BaseException:
-        print("ok")
-        sys.exit(1)
     except mariadb.Error as e:
         print(f"Error connecting to Mariadb:{e}")
         sys.exit(1)
 
     cur = conn.cursor()
+    
+
+
+
 
 
 if __name__ == '__main__':
