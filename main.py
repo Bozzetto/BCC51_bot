@@ -95,6 +95,7 @@ def materias_number_to_lista(num):
     return lista
 
 
+
 def materias_lista_to_number(lista):
     #Transforma uma lista de potencias de 2 em um numero
     sum = 0
@@ -103,8 +104,8 @@ def materias_lista_to_number(lista):
     return sum
 
 def main():
-    inicializar()
 
+    inicializar()
 
 
 
