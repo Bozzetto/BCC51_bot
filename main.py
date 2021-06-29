@@ -71,6 +71,9 @@ def inicializar():
 
     cur.close()
 
+def getToken():
+    file = open("token.txt","r")
+    return file.read()
 
 def materias_number_to_lista(num):
     #Transforma um numero em uma lista das potencias de 2 que o compoem
@@ -102,9 +105,9 @@ def check_type_chat(message,bot):
         return False
 
 def main():
-    token = "1742622994:AAGf4x1YEIM7PZ7N6DmzbdOIvqE0kKwCQ5A"
     inicializar()
-    bot = telebot.TeleBot(token)
+    token = getToken()
+    bot = telebot.TeleBot(token.rstrip())
 
     @bot.message_handler(commands=['start'])
     def start(message):
