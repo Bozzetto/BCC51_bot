@@ -21,7 +21,7 @@ def inicializar():
 
     cur = conn.cursor()
     try:
-        cur.execute("SELECT name from Users where admin= true")
+        cur.execute("SELECT name FROM Users WHERE admin= true")
     except mariadb.ProgrammingError:
         print("User table not found")
         answer = ""
@@ -53,7 +53,7 @@ def inicializar():
         print(f"Error finding Courses:{e}")
         sys.exit(1)
     try:
-        cur.execute("SELECT hour FROM Warnings")
+        cur.execute("SELECT date FROM Warnings")
     except mariadb.ProgrammingError:
         print("Warnings table not found")
         answer = ""
@@ -68,6 +68,8 @@ def inicializar():
     except mariadb.Error as e:
         print(f"Error finding Warnings:{e}")
         sys.exit(1)
+
+    cur.close()
 
 
 def materias_number_to_lista(num):
@@ -91,8 +93,27 @@ def materias_lista_to_number(lista):
         sum = sum + i
     return sum
 
+def check_type_chat(message,bot):
+    #Recebe uma mensagem e detecta se o grupo e privado ou publico
+    if message.chat.type == 'group' or message.chat.type == 'supergroup' or message.chat.type == 'channel':
+        bot.leave_chat(message.chat.id)
+        return True
+    else:
+        return False
+
 def main():
+    token = "1742622994:AAGf4x1YEIM7PZ7N6DmzbdOIvqE0kKwCQ5A"
     inicializar()
+    bot = telebot.TeleBot(token)
+
+    @bot.message_handler(commands=['start'])
+    def start(message):
+        if not check_type_chat(message,bot):
+            bot.send_message(message.chat.id,"Bem-vindo ao bot do BCC 51")
+            bot.send_message(message.chat.id,"Para mais informacoes sobre o bot visite:https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
+            bot.send_message(message.chat.id,"Para acessar os comandos do bot, digite '/help'")
+
+    bot.polling()
 
 
 
