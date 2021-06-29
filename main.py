@@ -6,6 +6,7 @@ import mariadb
 import sys
 
 def inicializar():
+    #Resolve todas as pendencias iniciais do programa
     try:
         conn = mariadb.connect(
             user = "anon",
@@ -59,7 +60,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(courseID) ON DELETE CASCADE)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int NOT NULL UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL,date datetime, repeatable tinyint, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(courseID) ON DELETE CASCADE)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -67,19 +68,6 @@ def inicializar():
     except mariadb.Error as e:
         print(f"Error finding Warnings:{e}")
         sys.exit(1)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def materias_number_to_lista(num):
@@ -104,7 +92,6 @@ def materias_lista_to_number(lista):
     return sum
 
 def main():
-
     inicializar()
 
 
