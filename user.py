@@ -10,7 +10,7 @@ class User(object):
 		self.rc = 0
 
 	def __str__(self):
-		print(self.id,self.email,self.name,self.materias,self.rc)
+		return str((self.id,self.email,self.name,self.courses,self.warnings,self.rc))
 
 	def set_id(id):
 		self.id = id
