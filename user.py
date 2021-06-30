@@ -1,30 +1,49 @@
+import math
+
 class User(object):
-	def __init__(self,id,email,rc=False):
+	def __init__(self):
+		self.id = None
+		self.email = None
+		self.name = None
+		self.courses = []
+		self.warnings = []
+		self.rc = 0
+
+	def __str__(self):
+		print(self.id,self.email,self.name,self.materias,self.rc)
+
+	def set_id(id):
 		self.id = id
+
+	def set_email(email):
 		self.email = email
-		self.materias = None
-		self.alertas = None
+
+	def set_name(name):
+		self.name = name
+
+	def set_rc(rc):
 		self.rc = rc
 
-	def add_materia(self,materia):
-		self.materias.append(materia)
+	def set_warnings(self,warnings):
+		self.warnings = warnings
 
-	def add_alerta(self,alerta):
-		self.alertas.append(alertas)
-
-	def encript_materias(self):
-		pass
+	def add_course(self,course):
+		number = math.pow(2,course)
+		self.materias.append(number)
 
 	def get_id(self):
 		return self.id
 
+	def get_name(self):
+		return self.name
+
 	def get_email(self):
 		return self.email
 
-	def get_materias(self):
+	def get_courses(self):
 		return self.materias
 
-	def get_alertas(self):
+	def get_warnings(self):
 		return self.alertas
 
 	def is_rc(self):
