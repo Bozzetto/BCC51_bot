@@ -191,7 +191,7 @@ def email_check(email):
     return True
 
 def gen_markup_confirm():
-    markup = telebot.types.ReplyKeyboardMarkup()
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True)
     markup.row_width = 1
     markup.add(telebot.types.KeyboardButton("Sim"), telebot.types.KeyboardButton("Não"))
 
@@ -209,6 +209,7 @@ def main():
             bot.send_message(message.chat.id,"Bem-vindo ao bot do BCC 51")
             bot.send_message(message.chat.id,"Para mais informações sobre o bot visite: https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
             bot.send_message(message.chat.id,"Para acessar os comandos do bot, digite '/help'")
+
 
     #Sequencia de funcoes que lidam com um pedido de registro
     @bot.message_handler(commands=['register'])
@@ -286,6 +287,7 @@ def main():
             cur.close()
             return False
 
+
     #Funcoes que lidam com o pedido de deletar conta do usuario
     @bot.message_handler(commands=['unregister','clear','delregistro'])
     def del_register(message):
@@ -307,6 +309,8 @@ def main():
             cur.close()
             bot.send_message(message.chat.id,"Nao foi possivel deletar o registro, tente novamente ou contate um admin")
 
+
+    #Funcoes que resetam as materias e tipos de alertas para o usuario
     @bot.message_handler(commands=['reset'])
     def reset(message):
         '''
@@ -330,6 +334,7 @@ def main():
             cur.close()
         else:
             bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
+            return -1
 
 
 
