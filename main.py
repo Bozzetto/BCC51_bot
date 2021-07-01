@@ -5,6 +5,7 @@ import datetime
 import threading
 import mariadb
 import sys
+import math
 
 import user
 
@@ -12,8 +13,8 @@ import user
 
 def inicializar():
     #Resolve todas as pendencias iniciais do programa
-    us = get_user().rstrip()
-    passwd = get_passwd().rstrip()
+    us = get_user(1).rstrip()
+    passwd = get_passwd(1).rstrip()
     try:
         conn = mariadb.connect(
             user = us,
@@ -35,7 +36,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Users( userID int UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(30) NOT NULL, email varchar(50) NOT NULL, telegram varchar(15) NOT NULL, materias int, admin int NOT NULL, rc int NOT NULL)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Users( userID int UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(30) NOT NULL, email varchar(50) NOT NULL, telegram varchar(15) NOT NULL, materias int,types int, admin int NOT NULL, rc int NOT NULL)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -82,13 +83,25 @@ def get_token():
     with open("token.txt","r") as file:
         return file.read()
 
-def get_user():
+def get_user(number):
     with open("user.txt","r") as file:
-        return file.read()
+        users = file.read().split("\n")
+    if number == 1:
+        return users[0]
+    elif number == 2:
+        return users[1]
+    elif number == 3:
+        return users[2]
 
-def get_passwd():
+def get_passwd(number):
     with open("passwd.txt","r") as file:
-        return file.read()
+        passwds = file.read().split("\n")
+    if number == 1:
+        return passwds[0]
+    elif number == 2:
+        return passwds[1]
+    elif number == 3:
+        return passwds[2]
 
 
 def get_courses():
@@ -104,9 +117,9 @@ def get_poll_results(poll_results,user,atribute):
         user.warnings = list
     return user
 
-def get_connect():
-    us = get_user().rstrip()
-    passwd = get_passwd().rstrip()
+def get_connect(number):
+    us = get_user(number).rstrip()
+    passwd = get_passwd(number).rstrip()
     try:
         conn = mariadb.connect(
             user = us,
@@ -119,7 +132,7 @@ def get_connect():
         print(f"Error connecting to Mariadb:{e}")
         sys.exit(-1)
 
-    return conn
+    return conn.cursor()
 
 
 def materias_number_to_lista(num):
@@ -138,12 +151,14 @@ def materias_number_to_lista(num):
 
 def materias_lista_to_number(lista):
     '''
-    Transforms a list with powers of 2 in a number adding its elements.
-    Transforma uma lista de potencias de 2 em um numero somando seus elementos.'''
+    Transforms a list with 0s or 1s in a number by adding its equivalents in powers of 2.
+    Transforma uma lista de 0s e 1s em um numero somando suas potencias de dois equivalentes.'''
     sum = 0
+    j=0
     for i in lista:
-        sum = sum + i
-    return sum
+        sum = sum + (i*(math.pow(2,j)))
+        j = j+1
+    return int(sum)
 
 
 def check_type_chat(message,bot):
@@ -190,10 +205,7 @@ def main():
     def process_email_step(message,user,bot):
         if email_valid(message.text):
             user.email = message.text
-            markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
-            itembtn1 = telebot.types.KeyboardButton('Sim')
-            itembtn2 = telebot.types.KeyboardButton('Não')
-            markup.add(itembtn1, itembtn2)
+            markup = gen_markup_confirm()
             bot.send_message(message.chat.id,"Podemos utilizar suas informações do Telegram? ",reply_markup = markup)
             bot.register_next_step_handler(message,process_information_step,user,bot)
         else:
@@ -202,10 +214,7 @@ def main():
 
     def process_information_step(message,user,bot):
         if message.text == 'Sim':
-            markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
-            itembtn1 = telebot.types.KeyboardButton('Sim')
-            itembtn2 = telebot.types.KeyboardButton('Não')
-            markup.add(itembtn1, itembtn2)
+            markup = gen_markup_confirm()
             if type(message.from_user.first_name) == type("a"):
                 user.name = message.from_user.first_name;
             if type(message.from_user.last_name) == type("a"):
@@ -225,17 +234,36 @@ def main():
         else:
             bot.send_message(message.chat.id,"Não foi possivel realizar o cadastro")
             exit()
-        courses = get_courses
+
+        courses = get_courses()
+
+        poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
+        time.sleep(10)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        user = get_poll_results(poll_results.options,user,"2")
+
         poll=bot.send_poll(message.chat.id,"Quais matérias você está fazendo?",get_courses(),allows_multiple_answers = True)
-        time.sleep(7)
+        time.sleep(10)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         user = get_poll_results(poll_results.options,user,"1")
 
-        poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
-        time.sleep(7)
-        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
-        user = get_poll_results(poll_results.options,user,"2")
-        print(user)
+
+        if insert_user_step(user):
+            bot.send_message(message.chat.id,"Usuario registrado com sucesso")
+        else:
+            bot.send_message(message.chat.id,"Ocorreu um problema durante seu registro, por favor tente novamente")
+
+    def insert_user_step(user):
+        cur = get_connect(1)
+        sql = f"INSERT INTO Users (name,email,telegram,materias,types,admin,rc) VALUES ('Leonardo Bozzetto','leobozzetto@usp.br',{user.id},{materias_lista_to_number(user.courses)},{materias_lista_to_number(user.warnings)},0,{user.rc})"
+        try:
+            cur.execute(sql)
+            cur.execute("COMMIT")
+            for item in cur:
+                print(item)
+            return True
+        except:
+            return False
 
 
     @bot.message_handler(commands=['start'])
