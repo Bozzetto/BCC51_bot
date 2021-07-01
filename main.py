@@ -218,7 +218,7 @@ def main():
             if type(message.from_user.first_name) == type("a"):
                 user.name = message.from_user.first_name;
             if type(message.from_user.last_name) == type("a"):
-                user.name = user.name + ' ' + message.from_user.last_name
+                user.name = user.name +" "+ message.from_user.last_name;
             user.id = message.chat.id
             bot.send_message(message.chat.id,"Você é um RC?",reply_markup=markup)
             bot.register_next_step_handler(message,process_final_step,user,bot)
@@ -255,16 +255,22 @@ def main():
 
     def insert_user_step(user):
         cur = get_connect(1)
-        sql = f"INSERT INTO Users (name,email,telegram,materias,types,admin,rc) VALUES ('Leonardo Bozzetto','leobozzetto@usp.br',{user.id},{materias_lista_to_number(user.courses)},{materias_lista_to_number(user.warnings)},0,{user.rc})"
+        sql = f"INSERT INTO Users (name,email,telegram,materias,types,admin,rc) VALUES ('{user.name}','{user.email}',{user.id},{materias_lista_to_number(user.courses)},{materias_lista_to_number(user.warnings)},0,{user.rc});"
         try:
             cur.execute(sql)
             cur.execute("COMMIT")
-            for item in cur:
-                print(item)
             return True
-        except:
+        except mariadb.Error as e:
+            print(e)
             return False
 
+    def del_register_final_step(message):
+        sql = f"DELETE FROM Users WHERE telegram = {message.chat.id}"
+        cur = get_connect(2)
+        cur.execute(sql)
+        cur.execute("COMMIT")
+        bot.send_message(message.chat.id,"Registro deletado com sucesso")
+        bot.send_message(message.chat.id,"Nao foi possivel deletar o registro, tente novamente ou contate um admin")
 
     @bot.message_handler(commands=['start'])
     def start(message):
@@ -290,7 +296,8 @@ def main():
         '''
         Deletes the User from the Database. Only works if the user is registered.
         Deleta o registro feito pelo usuario na database.So funciona se o mesmo for registrado.'''
-        pass
+        bot.send_message(message.chat.id,"Tem certeza disso?",reply_markup = gen_markup_confirm())
+        bot.register_next_step_handler(message,del_register_final_step)
 
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
