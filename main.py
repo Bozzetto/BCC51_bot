@@ -202,6 +202,26 @@ def main():
     token = get_token()
     bot = telebot.TeleBot(token.rstrip())
 
+    #Funcao que envia os dados iniciais para o usuario
+    @bot.message_handler(commands=['start'])
+    def start(message):
+        if not check_type_chat(message,bot):
+            bot.send_message(message.chat.id,"Bem-vindo ao bot do BCC 51")
+            bot.send_message(message.chat.id,"Para mais informações sobre o bot visite: https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
+            bot.send_message(message.chat.id,"Para acessar os comandos do bot, digite '/help'")
+
+    #Sequencia de funcoes que lidam com um pedido de registro
+    @bot.message_handler(commands=['register'])
+    def register(message):
+        #Novo objeto user para o novo usuario
+        newuser = user.User()
+        #Checa se esta em um grupo
+        if check_type_chat(message,bot):
+            return -1
+        bot.send_message(message.chat.id,"Vamos começar o seu processo de registro")
+        bot.send_message(message.chat.id,"Qual o seu e-mail (@usp.br)?")
+        bot.register_next_step_handler(message,process_email_step, newuser,bot)
+
     def process_email_step(message,user,bot):
         if email_valid(message.text):
             user.email = message.text
@@ -259,38 +279,14 @@ def main():
         try:
             cur.execute(sql)
             cur.execute("COMMIT")
+            cur.close()
             return True
         except mariadb.Error as e:
             print(e)
+            cur.close()
             return False
 
-    def del_register_final_step(message):
-        sql = f"DELETE FROM Users WHERE telegram = {message.chat.id}"
-        cur = get_connect(2)
-        cur.execute(sql)
-        cur.execute("COMMIT")
-        bot.send_message(message.chat.id,"Registro deletado com sucesso")
-        bot.send_message(message.chat.id,"Nao foi possivel deletar o registro, tente novamente ou contate um admin")
-
-    @bot.message_handler(commands=['start'])
-    def start(message):
-        if not check_type_chat(message,bot):
-            bot.send_message(message.chat.id,"Bem-vindo ao bot do BCC 51")
-            bot.send_message(message.chat.id,"Para mais informações sobre o bot visite: https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
-            bot.send_message(message.chat.id,"Para acessar os comandos do bot, digite '/help'")
-
-
-    @bot.message_handler(commands=['register'])
-    def register(message):
-        #Novo objeto user para o novo usuario
-        newuser = user.User()
-        #Checa se esta em um grupo
-        if check_type_chat(message,bot):
-            return -1
-        bot.send_message(message.chat.id,"Vamos começar o seu processo de registro")
-        bot.send_message(message.chat.id,"Qual o seu e-mail (@usp.br)?")
-        bot.register_next_step_handler(message,process_email_step, newuser,bot)
-
+    #Funcoes que lidam com o pedido de deletar conta do usuario
     @bot.message_handler(commands=['unregister','clear','delregistro'])
     def del_register(message):
         '''
@@ -298,6 +294,44 @@ def main():
         Deleta o registro feito pelo usuario na database.So funciona se o mesmo for registrado.'''
         bot.send_message(message.chat.id,"Tem certeza disso?",reply_markup = gen_markup_confirm())
         bot.register_next_step_handler(message,del_register_final_step)
+
+    def del_register_final_step(message):
+        sql = f"DELETE FROM Users WHERE telegram = {message.chat.id}"
+        try:
+            cur = get_connect(2)
+            cur.execute(sql)
+            cur.execute("COMMIT")
+            cur.close()
+            bot.send_message(message.chat.id,"Registro deletado com sucesso")
+        except:
+            cur.close()
+            bot.send_message(message.chat.id,"Nao foi possivel deletar o registro, tente novamente ou contate um admin")
+
+    @bot.message_handler(commands=['reset'])
+    def reset(message):
+        '''
+        Restarts all courses and alerts related to the user. Doesn't remove the user.
+        Reinicia todas materias e alertas do usuario, removendo suas atribuicoes ao usuario. Nao remove usuario.'''
+
+        if check_type_chat(message,bot):
+            exit()
+        msg = bot.send_message(message.chat.id,'''
+        Tem certeza que deseja continuar? Todos os dados de matérias e alertas serão apagados''',reply_markup= gen_markup_confirm())
+        bot.register_next_step_handler(msg, reset_s1)
+
+    def reset_s1(message):
+        if message.text == 'Não':
+            bot.send_message(message.chat.id,'''Operação cancelada!''')
+            return -1
+        elif message.text == 'Sim':
+            bot.send_message(message.chat.id,'''Deletando todas materias e alertas do usuario ...''')
+            cur = get_connect(2)
+            cur.execute()
+            cur.close()
+        else:
+            bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
+
+
 
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
@@ -314,6 +348,7 @@ def main():
         Delvolve uma lista com todas materias definidas pelo user."""
         pass
 
+
     @bot.message_handler(commands=['del_alerta'])
     def del_alerta(message):
         '''
@@ -328,29 +363,6 @@ def main():
         Remove uma materia programada pelo usuario na database.'''
         pass
 
-    @bot.message_handler(commands=['reset'])
-    def reset(message):
-        '''
-        Restarts all courses and alerts related to the user. Doesn't remove the user.
-        Reinicia todas materias e alertas do usuario, removendo suas atribuicoes ao usuario. Nao remove usuario.'''
-
-        if check_type_chat(message,bot):
-            exit()
-
-        msg = bot.send_message(message.chat.id,'''
-            Tem certeza que deseja continuar? Todos os dados de matérias e alertas serão apagados''',reply_markup= gen_markup_confirm())
-
-        bot.register_next_step_handler(msg, reset_s1)
-
-    def reset_s1(message):
-        if message.text == 'Não':
-            bot.send_message(message.chat.id,'''Operação cancelada!''')
-        elif message.text == 'Sim':
-            bot.send_message(message.chat.id,'''Deletando todas materias e alertas do usuario ...''')
-            cur = get_connect().cursor()
-            cur.close()
-        else:
-            bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
 
 
     @bot.message_handler(commands=['help','ajuda','?'])
