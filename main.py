@@ -94,7 +94,14 @@ def get_passwd():
 def get_courses():
     return ['Palestrinha','Calculo I','Fumac','Vetores','Algebool','IntroComp']
 
-def get_poll_results(poll_results,user):
+def get_poll_results(poll_results,user,atribute):
+    list = []
+    for item in poll_results:
+        list.append(item.voter_count)
+    if atribute == "1":
+        user.courses = list
+    elif atribute == "2":
+        user.warnings = list
     return user
 
 def get_connect():
@@ -147,12 +154,6 @@ def check_type_chat(message,bot):
     else:
         return False
 
-
-
-
-
-
-
 def email_valid(email):
     '''
     Verifies if the given email is valid. If it doesn't have spaces, '@usp.br' and any of the required fields is missing, returns False. Otherwise, returns True.
@@ -191,7 +192,7 @@ def main():
             user.email = message.text
             markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
             itembtn1 = telebot.types.KeyboardButton('Sim')
-            itembtn2 = telebot.types.KeyboardButton('Nao')
+            itembtn2 = telebot.types.KeyboardButton('Não')
             markup.add(itembtn1, itembtn2)
             bot.send_message(message.chat.id,"Podemos utilizar da suas informacoes do Telegram ",reply_markup = markup)
             bot.register_next_step_handler(message,process_information_step,user,bot)
@@ -203,7 +204,7 @@ def main():
         if message.text == 'Sim':
             markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
             itembtn1 = telebot.types.KeyboardButton('Sim')
-            itembtn2 = telebot.types.KeyboardButton('Nao')
+            itembtn2 = telebot.types.KeyboardButton('Não')
             markup.add(itembtn1, itembtn2)
             if type(message.from_user.first_name) == type("a"):
                 user.name = message.from_user.first_name;
@@ -219,19 +220,22 @@ def main():
     def process_final_step(message,user,bot):
         if message.text == 'Sim':
             user.rc = 1
-        else:
+        elif message.text =='Não':
             user.rc = 0
+        else:
+            bot.send_message(message.chat.id,"Não foi possivel realizar o cadastro")
+            exit()
         courses = get_courses
         poll=bot.send_poll(message.chat.id,"Quais materias voce esta fazendo?",get_courses(),allows_multiple_answers = True)
         time.sleep(7)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
-        user = get_poll_results(poll_results.options,user)
+        user = get_poll_results(poll_results.options,user,"1")
 
         poll=bot.send_poll(message.chat.id,"Quais tipos de avisos voce quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
         time.sleep(7)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
-        user = get_poll_results(poll_results.options,user)
-
+        user = get_poll_results(poll_results.options,user,"2")
+        print(user)
 
 
     @bot.message_handler(commands=['start'])
@@ -248,22 +252,10 @@ def main():
         newuser = user.User()
         #Checa se esta em um grupo
         if check_type_chat(message,bot):
-            exit()
-        #Teclados customizados para responder as entradas
-
-        markup2 = telebot.types.ReplyKeyboardMarkup(row_width=1)
-        itembtn1 = telebot.types.KeyboardButton('/Sim , sou RC')
-        itembtn2 = telebot.types.KeyboardButton('/Nao , nao sou RC')
-        markup2.add(itembtn1, itembtn2)
+            return -1
         bot.send_message(message.chat.id,"Vamos comecar o seu processo de registro")
         bot.send_message(message.chat.id,"Qual o seu e-mail (@usp.br)?")
         bot.register_next_step_handler(message,process_email_step, newuser,bot)
-
-
-
-
-
-
 
     @bot.message_handler(commands=['unregister','clear','delregistro'])
     def del_register(message):
