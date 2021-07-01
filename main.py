@@ -188,6 +188,7 @@ def email_check(email):
     Verifica Database de Emails. Se tiver Email ja registrado, retorna False, Caso Contrario, true'''
     return True
 
+
 def gen_markup_confirm():
     markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True)
     markup.row_width = 1
@@ -222,7 +223,7 @@ def main():
         bot.register_next_step_handler(message,process_email_step, newuser,bot)
 
     def process_email_step(message,user,bot):
-        if email_valid(message.text):
+        if email_valid(message.text)and email_check(message.text):
             user.email = message.text
             markup = gen_markup_confirm()
             bot.send_message(message.chat.id,"Podemos utilizar suas informações do Telegram? ",reply_markup = markup)
@@ -293,8 +294,9 @@ def main():
         '''
         Deletes the User from the Database. Only works if the user is registered.
         Deleta o registro feito pelo usuario na database.So funciona se o mesmo for registrado.'''
-        bot.send_message(message.chat.id,"Tem certeza disso?",reply_markup = gen_markup_confirm())
-        bot.register_next_step_handler(message,del_register_final_step)
+        if check_type_chat(message,bot):
+            bot.send_message(message.chat.id,"Tem certeza disso?",reply_markup = gen_markup_confirm())
+            bot.register_next_step_handler(message,del_register_final_step)
 
     def del_register_final_step(message):
         sql = f"DELETE FROM Users WHERE telegram = {message.chat.id};"
@@ -366,6 +368,89 @@ def main():
             bot.send_message(message.chat.id,"Okay")
         else:
             bot.send_message(message.chat.id,"Por favor responda com 'Sim' ou 'Não'")
+
+    @bot.message_handler(commands=['update'])
+    def update(message):
+        poll = bot.send_poll(message.chat.id,"Que informacão voce gostaria de alterar?",['E-mail','Nome','Telegram'],allows_multiple_answers = False)
+        time.sleep(10)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        if poll_results.options[0].voter_count == 1:
+            bot.send_message(message.chat.id,"Qual o seu novo e-mail(@usp.br)?")
+            bot.register_next_step_handler(message,email_update)
+        elif poll_results.options[1].voter_count == 1:
+            bot.send_message(message.chat.id,"Podemos utilizar o seu novo nome do Telegram?",reply_markup = gen_markup_confirm())
+            bot.register_next_step_handler(message,name_update)
+        elif poll_results.options[2].voter_count == 1:
+            bot.send_message(message.chat.id,"Qual o seu nome e-mail(@usp.br)?")
+            bot.register_next_step_handler(message,telegram_update)
+
+    def email_update(message):
+        if email_valid(message.text) and  email_check(message.text):
+            sql = f"UPDATE Users SET email = '{message.text}' WHERE telegram = {message.chat.id};"
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(sql)
+            cur.execute("COMMIT")
+            conn.close()
+            bot.send_message(message.chat.id,"E-mail registrado com sucesso")
+        else:
+            bot.send_message(message.chat.id,"E-mail invalido ou ja usado!")
+            bot.send_message(message.chat.id,"Qual o seu novo e-mail(@usp.br)?")
+            bot.register_next_step_handler
+
+    def name_update(message):
+        name = ""
+        if message.text == "Sim":
+            if type(message.from_user.first_name) == type("a"):
+                name = message.from_user.first_name
+            if type(message.from_user.last_name)== type("a"):
+                name = name + " " + message.from_user.last_name
+            if name == "":
+                bot.send_message(message.chat.id,"Nome invalido")
+                return -1
+            else:
+                sql = f"UPDATE Users SET name = '{name}' WHERE telegram = {message.chat.id};"
+                conn = get_connect(2)
+                cur = conn.cursor()
+                cur.execute(sql)
+                cur.execute("COMMIT")
+                conn.close()
+                bot.send_message(message.chat.id,"Nome alterado com sucesso!")
+        elif message.text == "Não":
+            bot.send_message(message.chat.id,"Não conseguimos alterar seu nome!")
+        else:
+            bot.send_message(message.chat.id,"Resposta invalida, por favor responda com 'Sim' ou 'Não'")
+            bot.register_next_step_handler(message,name_update)
+
+    def telegram_update(message):
+        if email_check(message.text) and email_valid(message.text):
+            bot.send_message(message.chat.id,"Qual o seu nome no Telegram antigo?")
+            bot.register_next_step_handler(message,telegram_update2,message.text)
+        else:
+            bot.send_message(message.chat.id,"E-mail invalido ou não encontrado!")
+            bot.send_message(message.chat.id,"Qual o seu e-mail(@usp.br)?")
+            bot.register_next_step_handler(message,telegram_update)
+
+    def telegram_update2(message,email):
+        sql = f"SELECT name FROM Users WHERE email = '{email}'"
+        conn = get_connect(1)
+        cur = conn.cursor()
+        cur.execute(sql)
+        for name in cur:
+            if name ==(message.text,):
+                conn2 = get_connect(2)
+                cur = conn2.cursor()
+                cur.execute(f"UPDATE Users SET telegram = {message.chat.id} WHERE email = '{email}'")
+                conn2.close()
+                bot.send_message(message.chat.id,"Telegram atualizado")
+            else:
+                bot.send_message(message.chat.id,"Nome invalido, tente seu nome completo")
+                bot.register_next_step_handler(message,telegram_update2,email)
+        conn.close()
+
+
+
+
 
     #
     @bot.message_handler(commands=['alertas'])
