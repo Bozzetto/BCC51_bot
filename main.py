@@ -2,7 +2,6 @@
 import telebot
 import time
 import datetime
-import threading
 import mariadb
 import sys
 import math
@@ -330,7 +329,8 @@ def main():
         elif message.text == 'Sim':
             bot.send_message(message.chat.id,'''Deletando todas materias e alertas do usuario ...''')
             cur = get_connect(2)
-            cur.execute()
+            cur.execute(f"UPDATE Users SET materias = 0,types = 0 WHERE telegram = {message.chat.id}")
+            cur.execute("COMMIT")
             cur.close()
         else:
             bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
