@@ -1,0 +1,2 @@
+# Ignores the token.txt file on commit.
+token.txt
