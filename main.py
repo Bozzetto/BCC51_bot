@@ -90,11 +90,30 @@ def get_passwd():
     with open("passwd.txt","r") as file:
         return file.read()
 
+
 def get_courses():
     return ['Palestrinha','Calculo I','Fumac','Vetores','Algebool','IntroComp']
 
 def get_poll_results(poll_results,user):
     return user
+
+def get_connect():
+    us = get_user().rstrip()
+    passwd = get_passwd().rstrip()
+    try:
+        conn = mariadb.connect(
+            user = us,
+            password = passwd,
+            host = "localhost",
+            port = 3306,
+            database="mydb"
+        )
+    except mariadb.Error as e:
+        print(f"Error connecting to Mariadb:{e}")
+        sys.exit(-1)
+
+    return conn
+
 
 def materias_number_to_lista(num):
     '''
@@ -154,6 +173,13 @@ def email_check(email):
     Verifies the email Database. If the email is already registered, returns False. Otherwise, returns True.
     Verifica Database de Emails. Se tiver Email ja registrado, retorna False, Caso Contrario, true'''
     return True
+
+def gen_markup_confirm():
+    markup = telebot.types.ReplyKeyboardMarkup()
+    markup.row_width = 1
+    markup.add(telebot.types.KeyboardButton("Sim"), telebot.types.KeyboardButton("Não"))
+
+    return markup
 
 def main():
     inicializar()
@@ -251,7 +277,8 @@ def main():
         '''
         Returns a list with all the alerts the user curently have.
         Delvolve uma lista com todos alertas definidos ao user.'''
-        pass
+
+
 
     @bot.message_handler(commands=['materias'])
     def get_materias(message):
@@ -279,7 +306,25 @@ def main():
         '''
         Restarts all courses and alerts related to the user. Doesn't remove the user.
         Reinicia todas materias e alertas do usuario, removendo suas atribuicoes ao usuario. Nao remove usuario.'''
-        pass
+
+        if check_type_chat(message,bot):
+            exit()
+
+        msg = bot.send_message(message.chat.id,'''
+            Tem certeza que deseja continuar? Todos os dados de matérias e alertas serão apagados''',reply_markup= gen_markup_confirm())
+
+        bot.register_next_step_handler(msg, reset_s1)
+
+    def reset_s1(message):
+        if message.text == 'Não':
+            bot.send_message(message.chat.id,'''Operação cancelada!''')
+        elif message.text == 'Sim':
+            bot.send_message(message.chat.id,'''Deletando todas materias e alertas do usuario ...''')
+            cur = get_connect().cursor()
+            cur.close()
+        else:
+            bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
+
 
     @bot.message_handler(commands=['help','ajuda','?'])
     def bot_help(message):
