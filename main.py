@@ -294,7 +294,7 @@ def main():
         '''
         Deletes the User from the Database. Only works if the user is registered.
         Deleta o registro feito pelo usuario na database.So funciona se o mesmo for registrado.'''
-        if check_type_chat(message,bot):
+        if not check_type_chat(message,bot):
             bot.send_message(message.chat.id,"Tem certeza disso?",reply_markup = gen_markup_confirm())
             bot.register_next_step_handler(message,del_register_final_step)
 
@@ -369,6 +369,8 @@ def main():
         else:
             bot.send_message(message.chat.id,"Por favor responda com 'Sim' ou 'Não'")
 
+
+    #Funcoes que atualizam informacoes do usuario
     @bot.message_handler(commands=['update'])
     def update(message):
         poll = bot.send_poll(message.chat.id,"Que informacão voce gostaria de alterar?",['E-mail','Nome','Telegram'],allows_multiple_answers = False)
@@ -441,6 +443,7 @@ def main():
                 conn2 = get_connect(2)
                 cur = conn2.cursor()
                 cur.execute(f"UPDATE Users SET telegram = {message.chat.id} WHERE email = '{email}'")
+                conn2.commit()
                 conn2.close()
                 bot.send_message(message.chat.id,"Telegram atualizado")
             else:
