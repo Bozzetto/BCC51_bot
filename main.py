@@ -194,10 +194,10 @@ def main():
             itembtn1 = telebot.types.KeyboardButton('Sim')
             itembtn2 = telebot.types.KeyboardButton('Não')
             markup.add(itembtn1, itembtn2)
-            bot.send_message(message.chat.id,"Podemos utilizar da suas informacoes do Telegram ",reply_markup = markup)
+            bot.send_message(message.chat.id,"Podemos utilizar suas informações do Telegram? ",reply_markup = markup)
             bot.register_next_step_handler(message,process_information_step,user,bot)
         else:
-            bot.send_message(message.chat.id,"E-mail invalido, por favor digite novamente")
+            bot.send_message(message.chat.id,"E-mail inválido. Por favor, digite novamente")
             bot.register_next_step_handler(message,process_email_step,user,bot)
 
     def process_information_step(message,user,bot):
@@ -211,7 +211,7 @@ def main():
             if type(message.from_user.last_name) == type("a"):
                 user.name = user.name + ' ' + message.from_user.last_name
             user.id = message.chat.id
-            bot.send_message(message.chat.id,"Voce e um RC?",reply_markup=markup)
+            bot.send_message(message.chat.id,"Você é um RC?",reply_markup=markup)
             bot.register_next_step_handler(message,process_final_step,user,bot)
         else:
             bot.send_message(message.chat.id,"Nao foi possivel realizar o cadastro")
@@ -226,12 +226,12 @@ def main():
             bot.send_message(message.chat.id,"Não foi possivel realizar o cadastro")
             exit()
         courses = get_courses
-        poll=bot.send_poll(message.chat.id,"Quais materias voce esta fazendo?",get_courses(),allows_multiple_answers = True)
+        poll=bot.send_poll(message.chat.id,"Quais matérias você está fazendo?",get_courses(),allows_multiple_answers = True)
         time.sleep(7)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         user = get_poll_results(poll_results.options,user,"1")
 
-        poll=bot.send_poll(message.chat.id,"Quais tipos de avisos voce quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
+        poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
         time.sleep(7)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         user = get_poll_results(poll_results.options,user,"2")
@@ -242,7 +242,7 @@ def main():
     def start(message):
         if not check_type_chat(message,bot):
             bot.send_message(message.chat.id,"Bem-vindo ao bot do BCC 51")
-            bot.send_message(message.chat.id,"Para mais informacoes sobre o bot visite: https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
+            bot.send_message(message.chat.id,"Para mais informações sobre o bot visite: https://github.com/Bozzetto/BCC51_bot", disable_web_page_preview = True)
             bot.send_message(message.chat.id,"Para acessar os comandos do bot, digite '/help'")
 
 
@@ -253,7 +253,7 @@ def main():
         #Checa se esta em um grupo
         if check_type_chat(message,bot):
             return -1
-        bot.send_message(message.chat.id,"Vamos comecar o seu processo de registro")
+        bot.send_message(message.chat.id,"Vamos começar o seu processo de registro")
         bot.send_message(message.chat.id,"Qual o seu e-mail (@usp.br)?")
         bot.register_next_step_handler(message,process_email_step, newuser,bot)
 

@@ -1,0 +1,4 @@
+# Ignores the token.txt, user.txt, passwd.txt files on commit.
+token.txt
+user.txt
+passwd.txt
