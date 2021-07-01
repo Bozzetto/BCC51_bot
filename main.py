@@ -75,8 +75,7 @@ def inicializar():
     except mariadb.Error as e:
         print(f"Error finding Warnings:{e}")
         sys.exit(1)
-
-    cur.close()
+    conn.close()
 
 def get_token():
     with open("token.txt","r") as file:
@@ -131,7 +130,7 @@ def get_connect(number):
         print(f"Error connecting to Mariadb:{e}")
         sys.exit(-1)
 
-    return conn.cursor()
+    return conn
 
 
 def materias_number_to_lista(num):
@@ -274,16 +273,17 @@ def main():
             bot.send_message(message.chat.id,"Ocorreu um problema durante seu registro, por favor tente novamente")
 
     def insert_user_step(user):
-        cur = get_connect(1)
+        conn = get_connect(2)
+        cur = conn.cursor()
         sql = f"INSERT INTO Users (name,email,telegram,materias,types,admin,rc) VALUES ('{user.name}','{user.email}',{user.id},{materias_lista_to_number(user.courses)},{materias_lista_to_number(user.warnings)},0,{user.rc});"
         try:
             cur.execute(sql)
-            cur.execute("COMMIT")
-            cur.close()
+            cur.execute("COMMIT;")
+            conn.close()
             return True
         except mariadb.Error as e:
             print(e)
-            cur.close()
+            conn.close()
             return False
 
 
@@ -297,15 +297,16 @@ def main():
         bot.register_next_step_handler(message,del_register_final_step)
 
     def del_register_final_step(message):
-        sql = f"DELETE FROM Users WHERE telegram = {message.chat.id}"
+        sql = f"DELETE FROM Users WHERE telegram = {message.chat.id};"
         try:
-            cur = get_connect(2)
+            conn = get_connect(2)
+            cur = conn.cursor()
             cur.execute(sql)
-            cur.execute("COMMIT")
-            cur.close()
+            cur.execute("COMMIT;")
+            conn.close()
             bot.send_message(message.chat.id,"Registro deletado com sucesso")
         except:
-            cur.close()
+            conn.close()
             bot.send_message(message.chat.id,"Nao foi possivel deletar o registro, tente novamente ou contate um admin")
 
 
@@ -328,16 +329,45 @@ def main():
             return -1
         elif message.text == 'Sim':
             bot.send_message(message.chat.id,'''Deletando todas materias e alertas do usuario ...''')
-            cur = get_connect(2)
-            cur.execute(f"UPDATE Users SET materias = 0,types = 0 WHERE telegram = {message.chat.id}")
-            cur.execute("COMMIT")
-            cur.close()
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(f"UPDATE Users SET materias = 0,types = 0 WHERE telegram = {message.chat.id};")
+            cur.execute("COMMIT;")
+            conn.close()
+            bot.send_message(message.chat.id,"Voce quer reconfigurar as materias?",reply_markup = gen_markup_confirm())
+            bot.register_next_step_handler(message,reset_s2)
         else:
             bot.send_message(message.chat.id,'''Operação abortada. Por favor, utilize os Botões para responder a mensagem. ''')
             return -1
 
+    def reset_s2(message):
+        if message.text == "Sim":
+            reconfiguser = user.User()
+            courses = get_courses()
 
+            poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
+            time.sleep(10)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            reconfiguser = get_poll_results(poll_results.options,user,"2")
 
+            poll=bot.send_poll(message.chat.id,"Quais matérias você está fazendo?",get_courses(),allows_multiple_answers = True)
+            time.sleep(10)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            reconfiguser = get_poll_results(poll_results.options,user,"1")
+
+            sql = f"UPDATE Users SET materias ={materias_lista_to_number(reconfiguser.courses)}, types = {materias_lista_to_number(reconfiguser.warnings)} WHERE telegram = {message.chat.id};"
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(sql)
+            cur.execute("COMMIT")
+            conn.close()
+            bot.send_message(message.chat.id,"O seu usuario foi reconfigurado!")
+        elif message.text == "Não":
+            bot.send_message(message.chat.id,"Okay")
+        else:
+            bot.send_message(message.chat.id,"Por favor responda com 'Sim' ou 'Não'")
+
+    #
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
