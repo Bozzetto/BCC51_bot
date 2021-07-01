@@ -182,10 +182,14 @@ def email_valid(email):
     return True
 
 def email_check(email):
-    # A fazer
     '''
     Verifies the email Database. If the email is already registered, returns False. Otherwise, returns True.
     Verifica Database de Emails. Se tiver Email ja registrado, retorna False, Caso Contrario, true'''
+    conn = get_connect(3)
+    cur = conn.cursor()
+    cur.execute(f"SELECT email FROM Users WHERE email = '{email}'")
+    for i in cur:
+        return False
     return True
 
 
