@@ -593,7 +593,8 @@ def main():
             if i.voter_count == 1:
                 poll = bot.send_poll(message.chat.id,f"Qual atributo de {i.text} voce quer alterar?")
 
-    def update_course_st
+    def update_course_st():
+        pass
 
                 #
     @bot.message_handler(commands=['alertas'])
