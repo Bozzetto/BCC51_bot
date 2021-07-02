@@ -584,17 +584,47 @@ def main():
             bot.send_message(message.chat.id,"Materia nao foi deletada com sucesso")
 
 
+    #Funcao que atualiza os dados de uma materia
     @bot.message_handler(commands=['update_course'])
     def update_course(message):
-        poll = bot.send_poll(message.chat.id,"Qual a materia que voce quer alterar?",get_courses())
-        time.sleep(7)
-        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
-        for i in poll_results.options:
-            if i.voter_count == 1:
-                poll = bot.send_poll(message.chat.id,f"Qual atributo de {i.text} voce quer alterar?")
+        if is_admin(message.chat.id):
+            poll = bot.send_poll(message.chat.id,"Qual a materia que voce quer alterar?",get_courses())
+            time.sleep(7)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            for i in poll_results.options:
+                if i.voter_count == 1:
+                    poll = bot.send_poll(message.chat.id,f"Qual atributo de {i.text} voce quer alterar?",['Professor','Nome'])
+                    time.sleep(7)
+                    poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+                    if poll_results.options[0].voter_count == 1:
+                        bot.send_message(message.chat.id,"Qual o novo nome do Professor?")
+                        bot.register_next_step_handler(message,update_course_st_professor,i)
+                    elif poll_results.options[1].voter_count == 1:
+                        bot.send_message(message.chat.id,"Qual o novo nome da disciplina?")
+                        bot.register_next_step_handler(message,update_course_st_nome,i)
+                    else:
+                        return -1
 
-    def update_course_st():
-        pass
+        else:
+            bot.send_message(message.chat.id,"Voce nao tem autorizacao para realizar esse comando")
+
+    def update_course_st_professor(message,i):
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Courses SET professor = {message.text} WHERE name_materias = {i.text}")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Curso atualizado")
+
+    def update_course_st_nome(message,i):
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Courses SET name_materias = {message.text} WHERE name_materias = {i.text}")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Curso atualizado")
+
+
 
                 #
     @bot.message_handler(commands=['alertas'])
