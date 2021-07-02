@@ -611,7 +611,7 @@ def main():
     def update_course_st_professor(message,i):
         conn = get_connect(2)
         cur = conn.cursor()
-        cur.execute(f"UPDATE Courses SET professor = {message.text} WHERE name_materias = {i.text}")
+        cur.execute(f"UPDATE Courses SET professor = '{message.text}' WHERE name_materias = '{i.text}'")
         conn.commit()
         conn.close()
         bot.send_message(message.chat.id,"Curso atualizado")
@@ -619,7 +619,7 @@ def main():
     def update_course_st_nome(message,i):
         conn = get_connect(2)
         cur = conn.cursor()
-        cur.execute(f"UPDATE Courses SET name_materias = {message.text} WHERE name_materias = {i.text}")
+        cur.execute(f"UPDATE Courses SET name_materias = '{message.text}' WHERE name_materias = '{i.text}'")
         conn.commit()
         conn.close()
         bot.send_message(message.chat.id,"Curso atualizado")
