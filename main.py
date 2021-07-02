@@ -7,7 +7,7 @@ import sys
 import math
 
 import user
-
+import course
 
 
 def inicializar():
@@ -51,7 +51,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Courses( courseID int NOT NULL UNIQUE PRIMARY KEY, name varchar(7) NOT NULL, professor varchar(50), code int NOT NULL)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Courses( courseID int UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(7) NOT NULL,name_materias varchar(40) NOT NULL, professor varchar(50), code int NOT NULL)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -103,7 +103,14 @@ def get_passwd(number):
 
 
 def get_courses():
-    return ['Palestrinha','Calculo I','Fumac','Vetores','Algebool','IntroComp']
+    list = []
+    conn = get_connect(3)
+    cur = conn.cursor()
+    cur.execute("SELECT name_materias FROM Courses")
+    for i in cur:
+        list.append(i[0])
+    conn.close()
+    return list
 
 def get_poll_results(poll_results,user,atribute):
     list = []
@@ -132,6 +139,18 @@ def get_connect(number):
 
     return conn
 
+def is_admin(user_id):
+    conn = get_connect(3)
+    cur = conn.cursor()
+    cur.execute(f"SELECT admin FROM Users WHERE telegram= {user_id}")
+
+    for i in cur:
+        if i == (0,):
+            conn.close()
+            return False
+        else:
+            conn.close()
+            return True
 
 def materias_number_to_lista(num):
     '''
@@ -158,6 +177,17 @@ def materias_lista_to_number(lista):
         j = j+1
     return int(sum)
 
+def user_check(user):
+    '''
+    Verifies the users Database. If the user is already registered, returns False. Otherwise, returns True.
+    Verifica Database de Usuarios. Se tiver Usuario ja registrado, retorna False, Caso Contrario, true'''
+    conn = get_connect(3)
+    cur = conn.cursor()
+    cur.execute(f"SELECT telegram FROM Users WHERE telegram = {user}")
+    conn.close()
+    for i in cur:
+        return False
+    return True
 
 def check_type_chat(message,bot):
     #Recebe uma mensagem e detecta se o grupo e privado ou publico
@@ -188,10 +218,33 @@ def email_check(email):
     conn = get_connect(3)
     cur = conn.cursor()
     cur.execute(f"SELECT email FROM Users WHERE email = '{email}'")
+    conn.close()
     for i in cur:
         return False
     return True
 
+def check_course(course):
+    conn = get_connect(2)
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM Courses")
+
+    for name in cur:
+        if name == (course,):
+            conn.close()
+            return False
+    conn.close()
+    return True
+
+def get_next_code():
+    conn = get_connect(2)
+    cur = conn.cursor()
+    cur.execute("SELECT code FROM Courses")
+
+    code = 1
+    for c in cur:
+        code = code*2
+    conn.close()
+    return code
 
 def gen_markup_confirm():
     markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True)
@@ -232,6 +285,8 @@ def main():
             markup = gen_markup_confirm()
             bot.send_message(message.chat.id,"Podemos utilizar suas informações do Telegram? ",reply_markup = markup)
             bot.register_next_step_handler(message,process_information_step,user,bot)
+        elif message.text == "/cancel":
+            return -1
         else:
             bot.send_message(message.chat.id,"E-mail inválido. Por favor, digite novamente")
             bot.register_next_step_handler(message,process_email_step,user,bot)
@@ -248,7 +303,7 @@ def main():
             bot.register_next_step_handler(message,process_final_step,user,bot)
         else:
             bot.send_message(message.chat.id,"Nao foi possivel realizar o cadastro")
-            exit()
+            return -1
 
     def process_final_step(message,user,bot):
         if message.text == 'Sim':
@@ -257,7 +312,7 @@ def main():
             user.rc = 0
         else:
             bot.send_message(message.chat.id,"Não foi possivel realizar o cadastro")
-            exit()
+            return -1
 
         courses = get_courses()
 
@@ -272,18 +327,22 @@ def main():
         user = get_poll_results(poll_results.options,user,"1")
 
 
-        if insert_user_step(user):
+        if insert_user_step(message,user):
             bot.send_message(message.chat.id,"Usuario registrado com sucesso")
         else:
             bot.send_message(message.chat.id,"Ocorreu um problema durante seu registro, por favor tente novamente")
 
-    def insert_user_step(user):
+    def insert_user_step(message,user):
         conn = get_connect(2)
         cur = conn.cursor()
         sql = f"INSERT INTO Users (name,email,telegram,materias,types,admin,rc) VALUES ('{user.name}','{user.email}',{user.id},{materias_lista_to_number(user.courses)},{materias_lista_to_number(user.warnings)},0,{user.rc});"
         try:
-            cur.execute(sql)
-            cur.execute("COMMIT;")
+            if user_check(message.chat.id):
+                cur.execute(sql)
+                cur.execute("COMMIT;")
+            else:
+                bot.send_message(message.chat.id,"Usuario ja registrado")
+                return False
             conn.close()
             return True
         except mariadb.Error as e:
@@ -377,6 +436,8 @@ def main():
     #Funcoes que atualizam informacoes do usuario
     @bot.message_handler(commands=['update'])
     def update(message):
+        if check_type_chat(message,bot):
+            return -1
         poll = bot.send_poll(message.chat.id,"Que informacão voce gostaria de alterar?",['E-mail','Nome','Telegram'],allows_multiple_answers = False)
         time.sleep(10)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
@@ -429,7 +490,7 @@ def main():
             bot.register_next_step_handler(message,name_update)
 
     def telegram_update(message):
-        if email_check(message.text) and email_valid(message.text):
+        if (not email_check(message.text)) and email_valid(message.text):
             bot.send_message(message.chat.id,"Qual o seu nome no Telegram antigo?")
             bot.register_next_step_handler(message,telegram_update2,message.text)
         else:
@@ -438,12 +499,12 @@ def main():
             bot.register_next_step_handler(message,telegram_update)
 
     def telegram_update2(message,email):
-        sql = f"SELECT name FROM Users WHERE email = '{email}'"
+        sql = f"SELECT name, admin FROM Users WHERE email = '{email}'"
         conn = get_connect(1)
         cur = conn.cursor()
         cur.execute(sql)
         for name in cur:
-            if name ==(message.text,):
+            if (name,admin) ==(message.text,0)and user_check(message.chat.id):
                 conn2 = get_connect(2)
                 cur = conn2.cursor()
                 cur.execute(f"UPDATE Users SET telegram = {message.chat.id} WHERE email = '{email}'")
@@ -451,13 +512,71 @@ def main():
                 conn2.close()
                 bot.send_message(message.chat.id,"Telegram atualizado")
             else:
-                bot.send_message(message.chat.id,"Nome invalido, tente seu nome completo")
+                bot.send_message(message.chat.id,"Nome invalido ou disposito ja registrado, tente seu nome completo")
                 bot.register_next_step_handler(message,telegram_update2,email)
         conn.close()
 
 
+    #Funcoes que criam uma materia
+    @bot.message_handler(commands=['create_course'])
+    def create_course(message):
+        if check_type_chat(message,bot):
+            return -1
+        if not is_admin(message.chat.id):
+            bot.send_message(message.chat.id,"Voce precisa ser admin para acessar esse comando")
+            return -1
+        bot.send_message(message.chat.id,"Qual a sigla da disciplina?")
+        bot.register_next_step_handler(message,create_course_st)
 
+    def create_course_st(message):
+        newcourse = course.Course()
+        if len(message.text)==7 and check_course(message.text.upper()):
+            newcourse.name = message.text.upper()
+            bot.send_message(message.chat.id,"Qual o nome da materia?")
+            bot.register_next_step_handler(message,create_course_st2,newcourse)
+        else:
+            bot.send_message(message.chat.id,"Curso ja criado ou nome errado, tente novamente!")
+            bot.register_next_step_handler(message,create_course_st)
 
+    def create_course_st2(message,newcourse):
+        newcourse.courseName = message.text
+        bot.send_message(message.chat.id,"Qual o nome do Professor?")
+        bot.register_next_step_handler(message,create_course_st3,newcourse)
+
+    def create_course_st3(message,newcourse):
+        newcourse.professor = message.text
+        newcourse.code = get_next_code()
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"INSERT INTO Courses (name,name_materias,professor,code) VALUES ('{newcourse.name}','{newcourse.courseName}','{newcourse.professor}',{newcourse.code})")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Curso criado com sucesso!")
+
+    #Funcao que deleta uma materia
+    @bot.message_handler(commands=['delete_course'])
+    def delete_course(message):
+        '''
+        Delets a course created by an admin.
+        Deleta um curso criado por um admin na database.'''
+        if check_type_chat(message,bot)
+            return -1
+        if is_admin(message.chat.id) and check_user(message.chat.id):
+            bot.send_message(message.chat.id,"Qual o nome do curso que voce deseja deletar?")
+            bot.register_next_step_handler(message,delete_course_st)
+        else:
+            bot.send_message(message.chat.id,"Voce nao tem permissao para realizar esse comando")
+
+    def delete_course_st(message):
+        try:
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(f"DELETE FROM Courses WHERE Telegram = {message.text}")
+            conn.commit()
+            conn.close()
+            bot.send_message(message.chat.id,"Materia deletada com sucesso")
+        except:
+            bot.send_message(message.chat.id,"Materia nao foi deletada com sucesso")
 
     #
     @bot.message_handler(commands=['alertas'])
@@ -476,12 +595,7 @@ def main():
         pass
 
 
-    @bot.message_handler(commands=['del_alerta'])
-    def del_alerta(message):
-        '''
-        Delets an alert created by the user.
-        Deleta um alerta criado pelo usuario na database.'''
-        pass
+
 
     @bot.message_handler(commands=['del_materia'])
     def del_materia(message):
