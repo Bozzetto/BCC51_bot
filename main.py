@@ -183,9 +183,10 @@ def user_check(user):
     conn = get_connect(3)
     cur = conn.cursor()
     cur.execute(f"SELECT telegram FROM Users WHERE telegram = {user}")
-    conn.close()
     for i in cur:
+        conn.close()
         return False
+    conn.close()
     return True
 
 def check_type_chat(message,bot):
@@ -275,7 +276,7 @@ def main():
         #Checa se esta em um grupo
         if check_type_chat(message,bot):
             return -1
-        if not check_user(message.chat.id):
+        if not user_check(message.chat.id):
             bot.send_message(message.chat.id,"Voce ja esta registrado")
             return -1
         bot.send_message(message.chat.id,"Vamos começar o seu processo de registro")
@@ -565,7 +566,7 @@ def main():
         Deleta um curso criado por um admin na database.'''
         if check_type_chat(message,bot):
             return -1
-        if is_admin(message.chat.id) and check_user(message.chat.id):
+        if is_admin(message.chat.id) and user_check(message.chat.id):
             bot.send_message(message.chat.id,"Qual o nome do curso que voce deseja deletar?")
             bot.register_next_step_handler(message,delete_course_st)
         else:
@@ -590,8 +591,9 @@ def main():
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         for i in poll_results.options:
             if i.voter_count == 1:
-                bot.send_message(message.chat.id,f"Qual atributo de {i.text}")
-                bot.register_next_step_handler(message,update_course_st)
+                poll = bot.send_poll(message.chat.id,f"Qual atributo de {i.text} voce quer alterar?")
+
+    def update_course_st
 
                 #
     @bot.message_handler(commands=['alertas'])
