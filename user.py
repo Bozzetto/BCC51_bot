@@ -1,4 +1,5 @@
 import math
+from datetime import datetime
 
 class User(object):
 	def __init__(self):
@@ -48,6 +49,53 @@ class User(object):
 
 	def is_rc(self):
 		return self.rc
+
+class Course(object):
+	def __init__(self):
+		self.name = None
+		self.course_name = None
+		self.professor = None
+		self.code = None
+
+	def set_name(self,name):
+		self.name = name
+
+	def set_course_name(self,course_name):
+		self.course_name = course_name
+
+	def set_professor(self,professor):
+		self.professor = professor
+
+	def set_code(self,code):
+		self.code = code
+
+class Warning(object):
+	def __init__(self):
+		self.name = None
+		self.type = None
+		self.course = None # Course object
+		self.creator = None
+		self.time = None # Datetime object
+		self.repeatable = None # Bool
+
+	def set_name(self,name):
+		self.name = name
+
+	def set_type(self,type):
+		self.type = type
+
+	def set_course(self,course):
+		self.course = course
+
+	def set_creator(self,creator):
+		self.creator = creator
+
+	def set_time(self,time):
+		self.time = time
+
+	def set_repeatable(self,repeatable):
+		self.repeatable = repeatable
+
 
 def main():
 	usuario = User("fernando_crz","fernandof@usp.com",rc=True)
