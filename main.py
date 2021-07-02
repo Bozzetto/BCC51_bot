@@ -8,7 +8,7 @@ import math
 
 import user
 import course
-
+import warning
 
 def inicializar():
     #Resolve todas as pendencias iniciais do programa
@@ -100,7 +100,6 @@ def get_passwd(number):
         return passwds[1]
     elif number == 3:
         return passwds[2]
-
 
 def get_courses():
     list = []
@@ -218,9 +217,10 @@ def email_check(email):
     conn = get_connect(3)
     cur = conn.cursor()
     cur.execute(f"SELECT email FROM Users WHERE email = '{email}'")
-    conn.close()
     for i in cur:
+        conn.close()
         return False
+    conn.close()
     return True
 
 def check_course(course):
@@ -274,6 +274,9 @@ def main():
         newuser = user.User()
         #Checa se esta em um grupo
         if check_type_chat(message,bot):
+            return -1
+        if not check_user(message.chat.id):
+            bot.send_message(message.chat.id,"Voce ja esta registrado")
             return -1
         bot.send_message(message.chat.id,"Vamos começar o seu processo de registro")
         bot.send_message(message.chat.id,"Qual o seu e-mail (@usp.br)?")
@@ -553,13 +556,14 @@ def main():
         conn.close()
         bot.send_message(message.chat.id,"Curso criado com sucesso!")
 
+
     #Funcao que deleta uma materia
     @bot.message_handler(commands=['delete_course'])
     def delete_course(message):
         '''
         Delets a course created by an admin.
         Deleta um curso criado por um admin na database.'''
-        if check_type_chat(message,bot)
+        if check_type_chat(message,bot):
             return -1
         if is_admin(message.chat.id) and check_user(message.chat.id):
             bot.send_message(message.chat.id,"Qual o nome do curso que voce deseja deletar?")
@@ -578,7 +582,18 @@ def main():
         except:
             bot.send_message(message.chat.id,"Materia nao foi deletada com sucesso")
 
-    #
+
+    @bot.message_handler(commands=['update_course'])
+    def update_course(message):
+        poll = bot.send_poll(message.chat.id,"Qual a materia que voce quer alterar?",get_courses())
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        for i in poll_results.options:
+            if i.voter_count == 1:
+                bot.send_message(message.chat.id,f"Qual atributo de {i.text}")
+                bot.register_next_step_handler(message,update_course_st)
+
+                #
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
@@ -592,16 +607,6 @@ def main():
         """
         Returns a list with all courses defined by the user.
         Delvolve uma lista com todas materias definidas pelo user."""
-        pass
-
-
-
-
-    @bot.message_handler(commands=['del_materia'])
-    def del_materia(message):
-        '''
-        Removes a course defined for the user from the database
-        Remove uma materia programada pelo usuario na database.'''
         pass
 
 
