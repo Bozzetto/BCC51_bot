@@ -69,6 +69,18 @@ class Course(object):
 	def set_code(self,code):
 		self.code = code
 
+	def get_name(self):
+		return self.name
+
+	def get_course_name(self):
+		return self.course_name
+
+	def get_professor(self):
+		return self.professor
+
+	def get_code(self):
+		return self.code
+
 class Warning(object):
 	def __init__(self):
 		self.name = None
