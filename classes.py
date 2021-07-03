@@ -108,6 +108,24 @@ class Warning(object):
 	def set_repeatable(self,repeatable):
 		self.repeatable = repeatable
 
+	def get_name(self):
+		return self.name
+
+	def get_type(self):
+		return self.type
+
+	def get_course(self):
+		return self.course
+
+	def get_creator(self):
+		return self.creator
+
+	def get_time(self):
+		return self.time
+
+	def get_repeatable(self):
+		return self.repeatable
+
 
 def main():
 	usuario = User("fernando_crz","fernandof@usp.com",rc=True)
