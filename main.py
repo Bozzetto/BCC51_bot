@@ -149,6 +149,19 @@ def is_admin(user_id):
             conn.close()
             return True
 
+def is_rc(user_id):
+    conn = get_connect(3)
+    cur = conn.cursor()
+    cur.execute(f"SELECT rc FROM Users WHERE telegram= {user_id}")
+
+    for i in cur:
+        if i == (0,):
+            conn.close()
+            return False
+        else:
+            conn.close()
+            return True
+
 def materias_number_to_lista(num):
     '''
     Transforms a number into a list with all the powers of two needed to create that number.
@@ -641,7 +654,7 @@ def main():
         pass
 
 
-
+    #Envia uma lista de comandos conforme a sua funcao no bot
     @bot.message_handler(commands=['help','ajuda','?'])
     def bot_help(message):
         '''
@@ -649,6 +662,20 @@ def main():
         Retorna informacao e comandos do bot.
         '''
         pass
+        bot.send_message(message.chat.id,"Para usuarios comuns:\n /register : Para se registrar no banco de dados\n /unregister : Para retirar seu registro do banco de dados")
+        bot.send_message(message.chat.id,"/reset : Para deletar os registros de materias e alertas e reconfigura-los\n /update : Para atualizar seus dados no banco de dados")
+        if is_rc(message.chat.id):
+            bot.send_message(message.chat.id,"Para RCs:")
+            bot.send_message(message.chat.id,"/")
+        if is_admin(message.chat.id):
+            bot.send_message(message.chat.id,"Para admins: \n /create_course : Para criar uma disciplina \n /delete_course : Para deletar uma disciplina")
+            bot.send_message(message.chat.id,"/update_course : Atualiza uma informacao de um curso")
+
+
+
+
+
+
 
     bot.polling()
 
