@@ -6,9 +6,7 @@ import mariadb
 import sys
 import math
 
-import user
-import course
-import warning
+import classes
 
 def inicializar():
     #Resolve todas as pendencias iniciais do programa
@@ -533,9 +531,9 @@ def main():
         bot.register_next_step_handler(message,create_course_st)
 
     def create_course_st(message):
-        newcourse = course.Course()
+        newcourse = classes.Course()
         if len(message.text)==7 and check_course(message.text.upper()):
-            newcourse.name = message.text.upper()
+            newcourse.set_name(message.text.upper())
             bot.send_message(message.chat.id,"Qual o nome da materia?")
             bot.register_next_step_handler(message,create_course_st2,newcourse)
         else:
@@ -543,16 +541,16 @@ def main():
             bot.register_next_step_handler(message,create_course_st)
 
     def create_course_st2(message,newcourse):
-        newcourse.courseName = message.text
+        newcourse.set_course_name(message.text)
         bot.send_message(message.chat.id,"Qual o nome do Professor?")
         bot.register_next_step_handler(message,create_course_st3,newcourse)
 
     def create_course_st3(message,newcourse):
-        newcourse.professor = message.text
-        newcourse.code = get_next_code()
+        newcourse.set_professor(message.text)
+        newcourse.set_code(get_next_code())
         conn = get_connect(2)
         cur = conn.cursor()
-        cur.execute(f"INSERT INTO Courses (name,name_materias,professor,code) VALUES ('{newcourse.name}','{newcourse.courseName}','{newcourse.professor}',{newcourse.code})")
+        cur.execute(f"INSERT INTO Courses (name,name_materias,professor,code) VALUES ('{newcourse.get_name()}','{newcourse.get_course_name()}','{newcourse.get_professor()}',{newcourse.get_code()})")
         conn.commit()
         conn.close()
         bot.send_message(message.chat.id,"Curso criado com sucesso!")
