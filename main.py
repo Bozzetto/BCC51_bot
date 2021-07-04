@@ -639,7 +639,7 @@ def main():
 
 
 
-                #
+    #
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
