@@ -5,6 +5,7 @@ import datetime
 import mariadb
 import sys
 import math
+import threading
 
 import classes
 
@@ -265,10 +266,39 @@ def gen_markup_confirm():
 
     return markup
 
+
+
+
 def main():
     inicializar()
     token = get_token()
     bot = telebot.TeleBot(token.rstrip())
+
+    def check_warnings():
+        while 1 == 1:
+            epoch = time.time()
+            curtime = time.localtime(epoch)
+            if curtime.tm_min%1 == 0:
+
+                conn = get_connect(3)
+                cur1 = conn.cursor()
+                conn2 = get_connect(3)
+                cur2 = conn2.cursor()
+                cur2.execute(f"SELECT telegram,materias,types FROM Users")
+                for i in cur2:
+                    lista_materias = materias_number_to_lista(i[1])
+                    lista_types = materias_number_to_lista(i[2])
+                    for materia in lista_materias:
+                        for type in lista_types:
+                            cur1.execute(f"SELECT name,repeatable FROM Warnings WHERE date = '{curtime.tm_year}-{curtime.tm_mon}-{curtime.tm_mday} {curtime.tm_hour}:{curtime.tm_min}'and course = {materia} and type = {type}")
+                            for warning in cur1:
+                                if
+                                bot.send_message(1012569160,"")
+
+
+
+
+            time.sleep(60)
 
     #Funcao que envia os dados iniciais para o usuario
     @bot.message_handler(commands=['start'])
@@ -635,6 +665,17 @@ def main():
         conn.close()
         bot.send_message(message.chat.id,"Curso atualizado")
 
+    @bot.message_handler(commands=['set_alert'])
+    def set_alert(message):
+        if check_type_chat(message,bot):
+            return -1
+        if is_rc(message.chat.id):
+            bot.send_message(message.chat.id,"Qual o assunto do alerta?")
+            bot.register_next_step_handler(message,set_alert_st)
+        else:
+            bot.send_message(message.chat.id,"Voce nao tem permissao para acessar este comando")
+
+
 
 
     #
@@ -671,8 +712,8 @@ def main():
             bot.send_message(message.chat.id,"Para admins: \n /create_course : Para criar uma disciplina \n /delete_course : Para deletar uma disciplina")
             bot.send_message(message.chat.id,"/update_course : Atualiza uma informacao de um curso")
 
-
-
+    t1 = threading.Thread(target=check_warnings)
+    t1.start()
 
 
 
