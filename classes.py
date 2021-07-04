@@ -69,6 +69,18 @@ class Course(object):
 	def set_code(self,code):
 		self.code = code
 
+	def get_name(self):
+		return self.name
+
+	def get_course_name(self):
+		return self.course_name
+
+	def get_professor(self):
+		return self.professor
+
+	def get_code(self):
+		return self.code
+
 class Warning(object):
 	def __init__(self):
 		self.name = None
@@ -95,6 +107,24 @@ class Warning(object):
 
 	def set_repeatable(self,repeatable):
 		self.repeatable = repeatable
+
+	def get_name(self):
+		return self.name
+
+	def get_type(self):
+		return self.type
+
+	def get_course(self):
+		return self.course
+
+	def get_creator(self):
+		return self.creator
+
+	def get_time(self):
+		return self.time
+
+	def get_repeatable(self):
+		return self.repeatable
 
 
 def main():
