@@ -50,7 +50,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Courses( courseID int UNIQUE AUTO_INCREMENT PRIMARY KEY, name varchar(7) NOT NULL,name_materias varchar(40) NOT NULL, professor varchar(50), code int NOT NULL)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Courses( courseID int UNIQUE AUTO_INCREMENT, name varchar(7) NOT NULL ,name_materias varchar(40) NOT NULL PRIMARY KEY, professor varchar(50), code int NOT NULL)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -66,7 +66,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL,date datetime, repeatable tinyint, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(courseID) ON DELETE CASCADE)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course varchar(40), type int NOT NULL,creator varchar(15),date datetime, repeatable tinyint, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(name_materias) ON DELETE CASCADE)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -280,7 +280,7 @@ def main():
         while True:
             epoch = time.time()
             curtime = time.localtime(epoch)
-            if curtime.tm_min%1 == 0:
+            if curtime.tm_min%15 == 0:
                 conn = get_connect(3)
                 cur1 = conn.cursor()
                 conn2 = get_connect(3)
@@ -669,19 +669,66 @@ def main():
         conn.close()
         bot.send_message(message.chat.id,"Curso atualizado")
 
-    @bot.message_handler(commands=['set_alert'])
-    def set_alert(message):
+    @bot.message_handler(commands=['set_warning'])
+    def set_warning(message):
         if check_type_chat(message,bot):
             return -1
-        if is_rc(message.chat.id):
+        if is_rc(message.chat.id)or is_admin(message.chat.id):
             bot.send_message(message.chat.id,"Qual o assunto do alerta?")
-            bot.register_next_step_handler(message,set_alert_st)
+            bot.register_next_step_handler(message,set_warning_st)
         else:
             bot.send_message(message.chat.id,"Voce nao tem permissao para acessar este comando")
 
+    def set_warning_st(message):
+        new_warning = classes.Warning()
+        new_warning.name = message.text
+        poll = bot.send_poll(message.chat.id,"Qual o curso?",get_courses())
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        for i in poll_results.options:
+            if i.voter_count == 1:
+                new_warning.course = i.text
+        poll = bot.send_poll(message.chat.id,"Qual o tipo?",['Prova','EP','Trabalho','Aula'])
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        for i in poll_results.options:
+            if i.voter_count == 1:
+                if i.text == 'Prova':
+                    new_warning.type = 1
+                elif i.text == 'EP':
+                    new_warning.type = 2
+                elif i.text == 'Trabalho':
+                    new_warning.type = 3
+                elif i.text == 'Aula':
+                    new_warning.type = 4
+        bot.send_message(message.chat.id,"Repete toda semana?",reply_markup = gen_markup_confirm())
+        bot.register_next_step_handler(message,set_warning_st2,new_warning)
 
+    def set_warning_st2(message,warning):
+        if message.text == 'Sim':
+            warning.repeatable = 1
+        elif message.text == 'Não':
+            warning.repeatable = 0
+        else:
+            bot.send_message(message.chat.id,"Mensagem invalida, responda Sim ou Não")
+            bot.register_next_step_handler(message,set_warning_st2,warning)
+        bot.send_message(message.chat.id,"Qual a data do alerta? Formato: 'YYYY-MM-DD HH:MIN'")
+        bot.register_next_step_handler(message,set_warning_st_final,warning)
 
-
+    def set_warning_st_final(message,warning):
+        warning.date = message.text;
+        warning.creator = message.chat.id
+        try:
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(f"INSERT INTO Warnings (name,course,type,creator,date,repeatable) VALUES ('{warning.name}','{warning.course}',{warning.type},'{warning.creator}','{warning.date}',{warning.repeatable})")
+            conn.commit()
+            conn.close()
+            bot.send_message(message.chat.id,"Alerta criado com sucesso!")
+        except mariadb.Error as e:
+            print(e)
+            bot.send_message(message.chat.id,"Data invalida, tente novamente! Formato: 'YYYY-MM-DD HH:MIN'")
+            bot.register_next_step_handler(message,set_warning_st_final,warning)
     #
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
