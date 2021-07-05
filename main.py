@@ -269,35 +269,39 @@ def gen_markup_confirm():
 
 
 
+
+
 def main():
     inicializar()
     token = get_token()
     bot = telebot.TeleBot(token.rstrip())
 
     def check_warnings():
-        while 1 == 1:
+        while True:
             epoch = time.time()
             curtime = time.localtime(epoch)
             if curtime.tm_min%1 == 0:
-
                 conn = get_connect(3)
                 cur1 = conn.cursor()
                 conn2 = get_connect(3)
                 cur2 = conn2.cursor()
-                cur2.execute(f"SELECT telegram,materias,types FROM Users")
+                conn3 = get_connect(2)
+                cur3 = conn3.cursor()
+                cur2.execute(f"SELECT name,type,course,repeatable FROM Warnings WHERE date = '{curtime.tm_year}-{curtime.tm_mon}-{curtime.tm_mday} {curtime.tm_hour}:{curtime.tm_min}'")
+                cur1.execute(f"SELECT name,telegram,materias,types FROM Users")
                 for i in cur2:
-                    lista_materias = materias_number_to_lista(i[1])
-                    lista_types = materias_number_to_lista(i[2])
-                    for materia in lista_materias:
-                        for type in lista_types:
-                            cur1.execute(f"SELECT name,repeatable FROM Warnings WHERE date = '{curtime.tm_year}-{curtime.tm_mon}-{curtime.tm_mday} {curtime.tm_hour}:{curtime.tm_min}'and course = {materia} and type = {type}")
-                            for warning in cur1:
-                                if
-                                bot.send_message(1012569160,"")
-
-
-
-
+                    for user in cur1:
+                        materias = materias_number_to_lista(user[2])
+                        types = materias_number_to_lista(user[3])
+                        if i[1] in types:
+                            if i[2] in materias:
+                                bot.send_message(user[1],i[0])
+                    if i[3] == 1:
+                        new_epoch = epoch + 604800
+                        future_time = time.localtime(new_epoch)
+                        cur3.execute(f"INSERT INTO Warnings (name,type,course,date,repeatable) VALUES ('{i[0]}',{i[1]},{i[2]},'{future_time.tm_year}-{future_time.tm_mon}-{future_time.tm_mday} {future_time.tm_hour}:{future_time.tm_min}',1)")
+                    cur3.execute(f"DELETE FROM Warnings WHERE name = '{i[0]}' and date = '{curtime.tm_year}-{curtime.tm_mon}-{curtime.tm_mday} {curtime.tm_hour}:{curtime.tm_min}'")
+                    conn3.commit()
             time.sleep(60)
 
     #Funcao que envia os dados iniciais para o usuario
