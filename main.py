@@ -734,7 +734,9 @@ def main():
             print(e)
             bot.send_message(message.chat.id,"Data invalida, tente novamente! Formato: 'YYYY-MM-DD HH:MIN'")
             bot.register_next_step_handler(message,set_warning_st_final,warning)
-    #
+
+
+    #Funcao que deleta um alerta de materia
     @bot.message_handler(commands=['del_warning'])
     def del_warning(message):
         poll = bot.send_poll(message.chat.id,"Qual a materia?",get_courses())
@@ -781,13 +783,124 @@ def main():
             bot.send_message(message.chat.id,"Nenhum alerta deletado")
 
 
-    
+    #Funcao que altera um atributo de um alerta
+    @bot.message_handler(commands = ['update_warning'])
+    def update_warning(message):
+        poll = bot.send_poll(message.chat.id,"Qual a materia?",get_courses())
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        for result in poll_results.options:
+            if result.voter_count == 1:
+                update_warning_st(message,result.text)
+
+    def update_warning_st(message,text):
+        warnings = []
+        conn = get_connect(3)
+        cur = conn.cursor()
+        cur.execute(f"SELECT name FROM Warnings WHERE course = '{text}'")
+        for i in cur:
+            warnings.append(i[0])
+        conn.close()
+        if len(warnings) >= 2:
+            poll = bot.send_poll(message.chat.id,"Qual o alerta?",warnings)
+            time.sleep(7)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            for i in poll_results.options:
+                if i.voter_count == 1:
+                    warning = i.text
+        elif len(warnings) == 1:
+            bot.send_message(message.chat.id,f"Somente o alerta {warnings[0]}")
+            warning = warnings[0]
+        else:
+            bot.send_message(message.chat.id,"Nenhum alerta para deletar")
+            return -1
+        poll = bot.send_poll(message.chat.id,"Qual a mudanca?",['Nome','Tipo','Curso','Dia/Hora','Repetitivo'])
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        if poll_results.options[0].voter_count == 1:
+            bot.send_message(message.chat.id,"Qual o novo nome?")
+            bot.register_next_step_handler(message,update_warning_st_name,warning)
+        elif poll_results.options[1].voter_count == 1:
+            poll = bot.send_poll(message.chat.id,"Qual o tipo?",['Prova','EP','Trabalho','Aula'])
+            time.sleep(7)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            for i in poll_results.options:
+                if i.voter_count == 1:
+                    update_warning_st_type(message,warning,poll_results.options.index(i))
+        elif poll_results.options[2].voter_count == 1:
+            poll = bot.send_poll(message.chat.id,"Qual o curso?",get_courses())
+            time.sleep(7)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            for i in poll_results.options:
+                if i.voter_count == 1:
+                    update_warning_st_course(message,warning,i.text)
+        elif poll_results.options[3].voter_count == 1:
+            bot.send_message(message.chat.id,"Qual a nova data? Formato: 'YYYY-MM-DD HH:MM'")
+            bot.register_next_step_handler(message,update_warning_st_date,warning)
+        elif poll_results.options[4].voter_count == 1:
+            bot.send_message(message.chat.id,"E repetitivo?",reply_markup = gen_markup_confirm())
+            bot.register_next_step_handler(message,update_warning_st_repeatable,warning)
+
+    def update_warning_st_name(message,warning):
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Warnings SET name = '{message.text}', creator = {message.chat.id} WHERE name = '{warning}'")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Nome alterado com sucesso!")
+
+    def update_warning_st_type(message,warning,type):
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Warnings SET type = {type+1}, creator = {message.chat.id} WHERE name = '{warning}'")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Tipo alterado com sucesso!")
+
+    def update_warning_st_course(message,warning,course):
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Warnings SET course = '{course}', creator = {message.chat.id} WHERE name = '{warning}'")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Curso alterado com sucesso!")
+
+    def update_warning_st_date(message,warning):
+        try:
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(f"UPDATE Warnings SET date = '{message.text}', creator = {message.chat.id} WHERE name = '{warning}'")
+            conn.commit()
+            conn.close()
+            bot.send_message(message.chat.id,"Data alterada com sucesso!")
+        except:
+            bot.send_message(message.chat.id,"Data invalida, tente novamente! Formato: 'YYYY-MM-DD HH:MM'")
+            bot.register_next_step_handler(message,update_warning_st_date,warning)
+
+    def update_warning_st_repeatable(message,warning):
+        if message.text == "Sim":
+            repeatable = 1
+        elif message.text == "Não":
+            repeatable = 0
+        else:
+            bot.send_message(message.chat.id,"Mensagem invalida, digite 'Sim' ou 'Não'")
+            return -1
+        conn = get_connect(2)
+        cur = conn.cursor()
+        cur.execute(f"UPDATE Warnings SET repeatable = {repeatable}, creator = {message.chat.id} WHERE name = '{warning}'")
+        conn.commit()
+        conn.close()
+        bot.send_message(message.chat.id,"Repeticao alterada com sucesso!")
+
+
+
 
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
         Returns a list with all the alerts the user curently have.
         Delvolve uma lista com todos alertas definidos ao user.'''
+        
 
 
 
@@ -810,7 +923,7 @@ def main():
         bot.send_message(message.chat.id,"Para usuarios comuns:\n /register : Para se registrar no banco de dados\n /unregister : Para retirar seu registro do banco de dados")
         bot.send_message(message.chat.id,"/reset : Para deletar os registros de materias e alertas e reconfigura-los\n /update : Para atualizar seus dados no banco de dados")
         if is_rc(message.chat.id):
-            bot.send_message(message.chat.id,"Para RCs: \n /set_warning : Para criar um alerta para a turma")
+            bot.send_message(message.chat.id,"Para RCs: \n /set_warning : Para criar um alerta para a turma \n /del_warning : Para deletar um alerta ja criado")
             bot.send_message(message.chat.id,"/")
         if is_admin(message.chat.id):
             bot.send_message(message.chat.id,"Para admins: \n /create_course : Para criar uma disciplina \n /delete_course : Para deletar uma disciplina")
