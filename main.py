@@ -66,7 +66,7 @@ def inicializar():
         while answer != "Y" and answer != "N" and answer != "NO" and answer != "YES":
             answer = input("Create a new one?(Y/N)").upper()
             if answer == "Y" or answer == "YES":
-                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course varchar(40), type int NOT NULL,creator varchar(15),date datetime, repeatable tinyint, CONSTRAINT fk_warning_course FOREIGN KEY (course) REFERENCES Courses(name_materias) ON DELETE CASCADE)")
+                cur.execute("CREATE TABLE IF NOT EXISTS Warnings(warningID int UNIQUE AUTO_INCREMENT PRIMARY KEY,name varchar(40) NOT NULL, course int, type int NOT NULL,creator varchar(15),date datetime, repeatable tinyint)")
             elif answer == "NO" or answer == "N":
                 print("Program couldn't initialize. Not all tables were found");
             else:
@@ -692,7 +692,7 @@ def main():
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         for i in poll_results.options:
             if i.voter_count == 1:
-                new_warning.course = i.text
+                new_warning.course = 2**poll_results.options.index(i)
         poll = bot.send_poll(message.chat.id,"Qual o tipo?",['Prova','EP','Trabalho','Aula'])
         time.sleep(7)
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
@@ -703,9 +703,9 @@ def main():
                 elif i.text == 'EP':
                     new_warning.type = 2
                 elif i.text == 'Trabalho':
-                    new_warning.type = 3
-                elif i.text == 'Aula':
                     new_warning.type = 4
+                elif i.text == 'Aula':
+                    new_warning.type = 8
         bot.send_message(message.chat.id,"Repete toda semana?",reply_markup = gen_markup_confirm())
         bot.register_next_step_handler(message,set_warning_st2,new_warning)
 
@@ -746,7 +746,7 @@ def main():
             if i.voter_count == 1:
                 conn = get_connect(3)
                 cur = conn.cursor()
-                cur.execute(f"SELECT name FROM Warnings WHERE course = '{i.text}'")
+                cur.execute(f"SELECT name FROM Warnings WHERE course = {2**poll_results.options.index(i)}")
 
         list = []
         for i in cur:
@@ -791,13 +791,13 @@ def main():
         poll_results = bot.stop_poll(message.chat.id,poll.message_id)
         for result in poll_results.options:
             if result.voter_count == 1:
-                update_warning_st(message,result.text)
+                update_warning_st(message,2**poll_results.options.index(result))
 
     def update_warning_st(message,text):
         warnings = []
         conn = get_connect(3)
         cur = conn.cursor()
-        cur.execute(f"SELECT name FROM Warnings WHERE course = '{text}'")
+        cur.execute(f"SELECT name FROM Warnings WHERE course = {text}")
         for i in cur:
             warnings.append(i[0])
         conn.close()
@@ -833,7 +833,7 @@ def main():
             poll_results = bot.stop_poll(message.chat.id,poll.message_id)
             for i in poll_results.options:
                 if i.voter_count == 1:
-                    update_warning_st_course(message,warning,i.text)
+                    update_warning_st_course(message,warning,2**poll_results.options.index(i))
         elif poll_results.options[3].voter_count == 1:
             bot.send_message(message.chat.id,"Qual a nova data? Formato: 'YYYY-MM-DD HH:MM'")
             bot.register_next_step_handler(message,update_warning_st_date,warning)
@@ -852,7 +852,7 @@ def main():
     def update_warning_st_type(message,warning,type):
         conn = get_connect(2)
         cur = conn.cursor()
-        cur.execute(f"UPDATE Warnings SET type = {type+1}, creator = {message.chat.id} WHERE name = '{warning}'")
+        cur.execute(f"UPDATE Warnings SET type = {2**type}, creator = {message.chat.id} WHERE name = '{warning}'")
         conn.commit()
         conn.close()
         bot.send_message(message.chat.id,"Tipo alterado com sucesso!")
@@ -860,7 +860,7 @@ def main():
     def update_warning_st_course(message,warning,course):
         conn = get_connect(2)
         cur = conn.cursor()
-        cur.execute(f"UPDATE Warnings SET course = '{course}', creator = {message.chat.id} WHERE name = '{warning}'")
+        cur.execute(f"UPDATE Warnings SET course = {course}, creator = {message.chat.id} WHERE name = '{warning}'")
         conn.commit()
         conn.close()
         bot.send_message(message.chat.id,"Curso alterado com sucesso!")
@@ -898,9 +898,24 @@ def main():
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
-        Returns a list with all the alerts the user curently have.
+        Returns a list with all the alerts the user curently has.
         Delvolve uma lista com todos alertas definidos ao user.'''
-        
+        conn = get_connect(3)
+        cur1 = conn.cursor()
+        conn2 = get_connect(3)
+        cur2 = conn2.cursor()
+        cur1.execute(f"SELECT types,materias FROM Users WHERE telegram = {message.chat.id}")
+        for i in cur1:
+            types = materias_number_to_lista(i[0])
+            courses = materias_number_to_lista(i[1])
+        bot.send_message(message.chat.id,"Voce tem os seguintes alertas: ")
+        for course in courses:
+            for type in types:
+                cur2.execute(f"SELECT name,date FROM Warnings WHERE course = {course} AND type = {type}")
+                for i in cur2:
+                    bot.send_message(message.chat.id,f"{i[0]}({i[1]})")
+        conn.close()
+        conn2.close()
 
 
 
@@ -909,7 +924,20 @@ def main():
         """
         Returns a list with all courses defined by the user.
         Delvolve uma lista com todas materias definidas pelo user."""
-        pass
+        conn = get_connect(3)
+        cur1 = conn.cursor()
+        conn2 = get_connect(3)
+        cur2 = conn2.cursor()
+        cur1.execute(f"SELECT materias FROM Users WHERE telegram = {message.chat.id}")
+        for i in cur1:
+            courses = materias_number_to_lista(i[0])
+        bot.send_message(message.chat.id,"Voce tem as seguintes materias: ")
+        for course in courses:
+            cur2.execute(f"SELECT name_materias FROM Courses WHERE code = {course}")
+            for i in cur2:
+                bot.send_message(message.chat.id,f"{i[0]}")
+        conn.close()
+        conn2.close()
 
 
     #Envia uma lista de comandos conforme a sua funcao no bot
