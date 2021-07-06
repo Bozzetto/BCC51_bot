@@ -302,6 +302,9 @@ def main():
                         cur3.execute(f"INSERT INTO Warnings (name,type,course,date,repeatable) VALUES ('{i[0]}',{i[1]},{i[2]},'{future_time.tm_year}-{future_time.tm_mon}-{future_time.tm_mday} {future_time.tm_hour}:{future_time.tm_min}',1)")
                     cur3.execute(f"DELETE FROM Warnings WHERE name = '{i[0]}' and date = '{curtime.tm_year}-{curtime.tm_mon}-{curtime.tm_mday} {curtime.tm_hour}:{curtime.tm_min}'")
                     conn3.commit()
+                    conn3.close()
+                conn.close()
+                conn2.close()
             time.sleep(60)
 
     #Funcao que envia os dados iniciais para o usuario
@@ -669,6 +672,8 @@ def main():
         conn.close()
         bot.send_message(message.chat.id,"Curso atualizado")
 
+
+    #Funcao que cria um alerta de uma materia
     @bot.message_handler(commands=['set_warning'])
     def set_warning(message):
         if check_type_chat(message,bot):
@@ -730,6 +735,54 @@ def main():
             bot.send_message(message.chat.id,"Data invalida, tente novamente! Formato: 'YYYY-MM-DD HH:MIN'")
             bot.register_next_step_handler(message,set_warning_st_final,warning)
     #
+    @bot.message_handler(commands=['del_warning'])
+    def del_warning(message):
+        poll = bot.send_poll(message.chat.id,"Qual a materia?",get_courses())
+        time.sleep(7)
+        poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+        for i in poll_results.options:
+            if i.voter_count == 1:
+                conn = get_connect(3)
+                cur = conn.cursor()
+                cur.execute(f"SELECT name FROM Warnings WHERE course = '{i.text}'")
+
+        list = []
+        for i in cur:
+            list.append(i[0])
+        conn.close()
+        try:
+            poll = bot.send_poll(message.chat.id,"Qual o alerta?",list)
+            time.sleep(7)
+            poll_results = bot.stop_poll(message.chat.id,poll.message_id)
+            for i in poll_results.options:
+                if i.voter_count == 1:
+                    conn = get_connect(2)
+                    cur = conn.cursor()
+                    cur.execute(f"DELETE FROM Warnings WHERE name = '{i.text}'")
+                    conn.commit()
+                    conn.close()
+                    bot.send_message(message.chat.id,"Alerta deletado")
+        except:
+            if len(list) == 1:
+                bot.send_message(message.chat.id,f"Somente um alerta para excluir: {list[0]}, tem certeza que quer deletar?",reply_markup = gen_markup_confirm())
+                bot.register_next_step_handler(message,del_warning_1,list[0])
+            elif len(list) == 0:
+                bot.send_message(message.chat.id,"Nenhum alerta para excluir")
+
+    def del_warning_1(message,name):
+        if message.text == 'Sim':
+            conn = get_connect(2)
+            cur = conn.cursor()
+            cur.execute(f"DELETE FROM Warnings WHERE name = '{name}'")
+            conn.commit()
+            conn.close()
+            bot.send_message(message.chat.id,"Alerta deletado")
+        elif message.text == 'Não':
+            bot.send_message(message.chat.id,"Nenhum alerta deletado")
+
+
+    
+
     @bot.message_handler(commands=['alertas'])
     def get_alertas(message):
         '''
@@ -757,7 +810,7 @@ def main():
         bot.send_message(message.chat.id,"Para usuarios comuns:\n /register : Para se registrar no banco de dados\n /unregister : Para retirar seu registro do banco de dados")
         bot.send_message(message.chat.id,"/reset : Para deletar os registros de materias e alertas e reconfigura-los\n /update : Para atualizar seus dados no banco de dados")
         if is_rc(message.chat.id):
-            bot.send_message(message.chat.id,"Para RCs:")
+            bot.send_message(message.chat.id,"Para RCs: \n /set_warning : Para criar um alerta para a turma")
             bot.send_message(message.chat.id,"/")
         if is_admin(message.chat.id):
             bot.send_message(message.chat.id,"Para admins: \n /create_course : Para criar uma disciplina \n /delete_course : Para deletar uma disciplina")
