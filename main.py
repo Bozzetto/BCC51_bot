@@ -614,7 +614,7 @@ def main():
         Deleta um curso criado por um admin na database.'''
         if check_type_chat(message,bot):
             return -1
-        if is_admin(message.chat.id) and user_check(message.chat.id):
+        if is_admin(message.chat.id) and not user_check(message.chat.id):
             bot.send_message(message.chat.id,"Qual o nome do curso que voce deseja deletar?")
             bot.register_next_step_handler(message,delete_course_st)
         else:
