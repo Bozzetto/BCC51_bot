@@ -465,7 +465,7 @@ def main():
             poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
             time.sleep(10)
             poll_results = bot.stop_poll(message.chat.id,poll.message_id)
-            reconfiguser = get_poll_results(poll_results.options,user,"2")
+            reconfiguser = get_poll_results(poll_results.options,reconfiguser,"2")
 
             poll=bot.send_poll(message.chat.id,"Quais matérias você está fazendo?",get_courses(),allows_multiple_answers = True)
             time.sleep(10)
@@ -555,7 +555,7 @@ def main():
         conn = get_connect(1)
         cur = conn.cursor()
         cur.execute(sql)
-        for name in cur:
+        for name,admin in cur:
             if (name,admin) ==(message.text,0)and user_check(message.chat.id):
                 conn2 = get_connect(2)
                 cur = conn2.cursor()
