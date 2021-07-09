@@ -320,7 +320,7 @@ def main():
     @bot.message_handler(commands=['register'])
     def register(message):
         #Novo objeto user para o novo usuario
-        newuser = user.User()
+        newuser = classes.User()
         #Checa se esta em um grupo
         if check_type_chat(message,bot):
             return -1
@@ -459,7 +459,7 @@ def main():
 
     def reset_s2(message):
         if message.text == "Sim":
-            reconfiguser = user.User()
+            reconfiguser = classes.User()
             courses = get_courses()
 
             poll=bot.send_poll(message.chat.id,"Quais tipos de avisos você quer?",['1-Provas(1 semana antes e no dia)','2-EPs','3-Trabalhos','4-Aulas'],allows_multiple_answers = True)
@@ -950,6 +950,7 @@ def main():
         pass
         bot.send_message(message.chat.id,"Para usuarios comuns:\n /register : Para se registrar no banco de dados\n /unregister : Para retirar seu registro do banco de dados")
         bot.send_message(message.chat.id,"/reset : Para deletar os registros de materias e alertas e reconfigura-los\n /update : Para atualizar seus dados no banco de dados")
+        bot.send_message(message.chat.id,"/alertas : Te devolve todos")
         if is_rc(message.chat.id):
             bot.send_message(message.chat.id,"Para RCs: \n /set_warning : Para criar um alerta para a turma \n /del_warning : Para deletar um alerta ja criado")
             bot.send_message(message.chat.id,"/")
